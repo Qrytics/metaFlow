@@ -53,9 +53,74 @@ class PipelineRunRequest(BaseModel):
 
 
 class PipelineRunResponse(BaseModel):
+    run_id: str = ""
     transcript: TranscriptSchema
     draft: DraftDiffSchema
     checks: CheckReportSchema
     critic: CriticReportSchema
     diagram: DiagramSchema
     telemetry_ms: dict[str, float] = Field(default_factory=dict)
+
+
+class TeamCreate(BaseModel):
+    name: str
+
+
+class TeamSummary(BaseModel):
+    id: str
+    name: str
+    created_at: float
+    member_count: int = 0
+
+
+class MemberCreate(BaseModel):
+    name: str
+    role: str = "member"
+
+
+class Member(BaseModel):
+    id: str
+    team_id: str
+    name: str
+    role: str
+    created_at: float
+
+
+class TeamDetail(BaseModel):
+    id: str
+    name: str
+    created_at: float
+    members: list[Member] = Field(default_factory=list)
+    recent_runs: list["RunSummary"] = Field(default_factory=list)
+
+
+class RunSummary(BaseModel):
+    id: str
+    team_id: str | None = None
+    title: str
+    mode: str
+    status: str
+    created_at: float
+    updated_at: float
+
+
+class StageEvent(BaseModel):
+    stage: str
+    state: str
+    detail: str = ""
+    ms: float = 0.0
+    at: float = 0.0
+
+
+class RunDetail(RunSummary):
+    events: list[StageEvent] = Field(default_factory=list)
+    result: PipelineRunResponse | None = None
+
+
+class SetupCheck(BaseModel):
+    name: str
+    ok: bool
+    detail: str = ""
+
+
+TeamDetail.model_rebuild()

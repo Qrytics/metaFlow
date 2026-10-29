@@ -8,6 +8,7 @@ class Settings(BaseSettings):
     baseten_api_key: str = ""
     baseten_spark_open_model: str = "meta-models/muse-spark-open-1026"
     max_critic_retries: int = 3
+    data_dir: str = "data"
 
     @property
     def is_dev(self) -> bool:

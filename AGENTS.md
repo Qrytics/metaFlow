@@ -1,4 +1,4 @@
-# AGENTS.md — metaFlow
+# AGENTS.md for metaFlow
 
 ## 0. Project identity
 
@@ -15,7 +15,7 @@ World (daily work speedup: standups + review queue become merge-ready PRs).
 - Audio precondition: convert uploads to mono 16-bit PCM WAV at 16kHz before
   calling `muse-voice-transcribe`.
 
-## 2. Model routing (mandatory — exact IDs)
+## 2. Model routing (mandatory, exact IDs)
 
 | # | Model ID | Role |
 |---|----------|------|
