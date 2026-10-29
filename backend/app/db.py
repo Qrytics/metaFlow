@@ -78,11 +78,21 @@ def list_teams() -> list[dict]:
         rows = conn.execute("SELECT * FROM teams ORDER BY created_at DESC").fetchall()
         out = []
         for r in rows:
+            members = conn.execute(
+                "SELECT name FROM members WHERE team_id = ? ORDER BY created_at LIMIT 4",
+                (r["id"],),
+            ).fetchall()
             n = conn.execute(
                 "SELECT COUNT(*) AS c FROM members WHERE team_id = ?", (r["id"],)
             ).fetchone()["c"]
             out.append(
-                {"id": r["id"], "name": r["name"], "created_at": r["created_at"], "member_count": n}
+                {
+                    "id": r["id"],
+                    "name": r["name"],
+                    "created_at": r["created_at"],
+                    "member_count": n,
+                    "sample_members": [m["name"] for m in members],
+                }
             )
         return out
 

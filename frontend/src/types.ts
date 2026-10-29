@@ -38,6 +38,7 @@ export interface TeamSummary {
   name: string;
   created_at: number;
   member_count: number;
+  sample_members: string[];
 }
 
 export interface Member {

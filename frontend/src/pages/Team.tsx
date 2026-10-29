@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { apiJson, api } from "../api";
 import type { TeamDetail, View } from "../types";
-import { useLoad, ErrorBox, RunRow, Avatar, EmptyState, fmtTime } from "./shared";
+import { useLoad, ErrorBox, RunRow, Avatar, Chevron, EmptyState, Skeleton, relTime } from "./shared";
 
 export default function TeamPage({ id, go }: { id: string; go: (v: View) => void }) {
   const { data, error, reload } = useLoad<TeamDetail>(`/teams/${encodeURIComponent(id)}`);
@@ -47,15 +47,24 @@ export default function TeamPage({ id, go }: { id: string; go: (v: View) => void
       </div>
     );
   }
-  if (!data) return <p className="muted">Loading team…</p>;
+  if (!data) return <div><h1>Team</h1><Skeleton lines={4} /></div>;
 
   return (
     <div>
       <button className="link-btn back" onClick={() => go({ name: "teams" })}>
-        <span aria-hidden="true">‹</span> All teams
+        <Chevron dir="left" /> All teams
       </button>
-      <h1>{data.name}</h1>
-      <p className="lede">Created {fmtTime(data.created_at)}</p>
+      <div className="team-head">
+        <Avatar name={data.name} size="lg" />
+        <div>
+          <h1>{data.name}</h1>
+          <p className="lede">
+            {data.members.length} {data.members.length === 1 ? "person" : "people"} ·{" "}
+            {data.recent_runs.length} recent {data.recent_runs.length === 1 ? "run" : "runs"} · created{" "}
+            {relTime(data.created_at)}
+          </p>
+        </div>
+      </div>
 
       <h2>People ({data.members.length})</h2>
       <div className="card people">
@@ -64,8 +73,8 @@ export default function TeamPage({ id, go }: { id: string; go: (v: View) => void
             <span className="member-id">
               <Avatar name={m.name} />
               <span>
-                <strong>{m.name}</strong>
-                <span className="muted"> · {m.role}</span>
+                <strong>{m.name}</strong> <span className="role-pill">{m.role}</span>
+                <span className="muted member-since"> · joined {relTime(m.created_at)}</span>
               </span>
             </span>
             <button className="btn-danger-ghost" onClick={() => remove(m.id)}>

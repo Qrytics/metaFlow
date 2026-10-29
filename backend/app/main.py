@@ -5,6 +5,7 @@ import sys
 from fastapi import FastAPI, File, Form, HTTPException, UploadFile
 
 from app import db, models
+from app import seed as demo_seed
 from app.checks import run_checks
 from app.config import settings
 from app.pipeline import run_pipeline
@@ -73,6 +74,23 @@ def setup_status() -> list[SetupCheck]:
         f"MAX_CRITIC_RETRIES={settings.max_critic_retries}",
     )
     return out
+
+
+def _require_dev() -> None:
+    if not settings.is_dev:
+        raise HTTPException(status_code=403, detail="demo seeding is only available in ENV=dev")
+
+
+@app.post("/setup/seed")
+def seed() -> dict:
+    _require_dev()
+    return demo_seed.seed_demo()
+
+
+@app.post("/setup/reset")
+def reset() -> dict:
+    _require_dev()
+    return demo_seed.reset_workspace()
 
 
 # -- single steps ----------------------------------------------------------

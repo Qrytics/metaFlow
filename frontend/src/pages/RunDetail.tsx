@@ -1,8 +1,25 @@
+import { useState } from "react";
 import type { View, RunDetail } from "../types";
-import { useLoad, ErrorBox, StatusPill, DiffView, fmtTime } from "./shared";
+import { useLoad, ErrorBox, StatusPill, Chevron, DiffView, Skeleton, copyText, fmtTime, relTime } from "./shared";
+
+const SPK_COLORS = ["av-blue", "av-teal", "av-green", "av-amber", "av-rose", "av-slate"];
+
+function speakerClass(speaker: string): string {
+  let hash = 0;
+  for (const ch of speaker) hash = (hash * 31 + ch.charCodeAt(0)) >>> 0;
+  return SPK_COLORS[hash % SPK_COLORS.length];
+}
 
 export default function RunDetailPage({ id, go }: { id: string; go: (v: View) => void }) {
   const { data, error, reload } = useLoad<RunDetail>(`/runs/${encodeURIComponent(id)}`);
+  const [copied, setCopied] = useState(false);
+
+  async function copyId() {
+    if (data && (await copyText(data.id))) {
+      setCopied(true);
+      window.setTimeout(() => setCopied(false), 1500);
+    }
+  }
 
   if (error) {
     return (
@@ -15,23 +32,30 @@ export default function RunDetailPage({ id, go }: { id: string; go: (v: View) =>
       </div>
     );
   }
-  if (!data) return <p className="muted">Loading run…</p>;
+  if (!data) return <div><h1>Run</h1><Skeleton lines={6} /></div>;
 
   const r = data.result;
   const totalMs = r ? Object.values(r.telemetry_ms).reduce((a, b) => a + b, 0) : 0;
+  const maxMs = Math.max(1, ...data.events.map((e) => e.ms));
 
   return (
     <div>
       <button className="link-btn back" onClick={() => go({ name: "runs" })}>
-        <span aria-hidden="true">‹</span> All runs
+        <Chevron dir="left" /> All runs
       </button>
       <div className="run-head">
         <h1>{data.title}</h1>
         <StatusPill status={data.status} />
       </div>
       <p className="lede">
-        {data.mode} · started {fmtTime(data.created_at)}
+        {data.mode} · started {relTime(data.created_at)} ({fmtTime(data.created_at)})
         {r ? ` · finished in ${Math.round(totalMs)} ms` : ""}
+      </p>
+      <p className="run-id-line">
+        <code className="num">{data.id}</code>{" "}
+        <button className="link-btn" onClick={copyId}>
+          {copied ? "Copied" : "Copy run ID"}
+        </button>
       </p>
 
       <div className="detail-grid">
@@ -47,6 +71,11 @@ export default function RunDetailPage({ id, go }: { id: string; go: (v: View) =>
                     <span className="rail-state">{e.state.replace("_", " ")}</span>
                     {e.ms > 0 && <span className="num">{Math.round(e.ms)} ms</span>}
                   </div>
+                  {e.state === "done" && e.ms > 0 && (
+                    <div className="dur" aria-hidden="true">
+                      <i style={{ width: `${Math.max(3, (e.ms / maxMs) * 100)}%` }} />
+                    </div>
+                  )}
                   {e.detail && <p className="muted rail-detail">{e.detail}</p>}
                 </div>
               </div>
@@ -69,7 +98,7 @@ export default function RunDetailPage({ id, go }: { id: string; go: (v: View) =>
                 {r.transcript.turns.map((t, i) => (
                   <div key={i} className="turn">
                     <div className="turn-head">
-                      <strong>{t.speaker}</strong>
+                      <span className={`spk ${speakerClass(t.speaker)}`}>{t.speaker}</span>
                       <span className="muted num">{t.start_ms}–{t.end_ms} ms</span>
                     </div>
                     <p>{t.text}</p>

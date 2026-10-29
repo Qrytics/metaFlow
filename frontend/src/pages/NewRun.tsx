@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { apiForm } from "../api";
 import type { TeamSummary, View } from "../types";
-import { useLoad, ErrorBox } from "./shared";
+import { useLoad, ErrorBox, Menu } from "./shared";
 
 export default function NewRun({ go }: { go: (v: View) => void }) {
   const teams = useLoad<TeamSummary[]>("/teams");
@@ -12,6 +12,7 @@ export default function NewRun({ go }: { go: (v: View) => void }) {
   const [prUrl, setPrUrl] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
+  const [dragOver, setDragOver] = useState(false);
 
   async function submit() {
     if (!title.trim()) {
@@ -54,17 +55,22 @@ export default function NewRun({ go }: { go: (v: View) => void }) {
           Run title
           <input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Login retry fix from Tuesday standup" />
         </label>
-        <label>
-          Team (optional)
-          <select value={teamId} onChange={(e) => setTeamId(e.target.value)}>
-            <option value="">No team (personal run)</option>
-            {(teams.data ?? []).map((t) => (
-              <option key={t.id} value={t.id}>
-                {t.name} ({t.member_count} people)
-              </option>
-            ))}
-          </select>
-        </label>
+        <span className="field-label">Team (optional)</span>
+        <div className="field-menu">
+          <Menu
+            label="File this run under a team"
+            value={teamId}
+            onChange={setTeamId}
+            options={[
+              { value: "", label: "No team (personal run)" },
+              ...(teams.data ?? []).map((t) => ({
+                value: t.id,
+                label: t.name,
+                hint: `${t.member_count} ${t.member_count === 1 ? "person" : "people"}`,
+              })),
+            ]}
+          />
+        </div>
         <div className="mode-toggle">
           <button className={mode === "audio" ? "active" : ""} onClick={() => setMode("audio")}>
             Standup audio
@@ -74,9 +80,28 @@ export default function NewRun({ go }: { go: (v: View) => void }) {
           </button>
         </div>
         {mode === "audio" ? (
-          <label>
-            Audio file
-            <input type="file" accept="audio/*" onChange={(e) => setFile(e.target.files?.[0] ?? null)} />
+          <label
+            className={`dropzone${dragOver ? " over" : ""}`}
+            onDragOver={(e) => {
+              e.preventDefault();
+              setDragOver(true);
+            }}
+            onDragLeave={() => setDragOver(false)}
+            onDrop={(e) => {
+              e.preventDefault();
+              setDragOver(false);
+              const f = e.dataTransfer.files?.[0];
+              if (f) setFile(f);
+            }}
+          >
+            <span className="dropzone-title">Drop standup audio here, or click to browse</span>
+            <span className="dropzone-sub">mp3, wav, m4a or ogg. Converted to 16kHz mono before transcription.</span>
+            {file && <span className="dropzone-name">{file.name}</span>}
+            <input
+              type="file"
+              accept="audio/*"
+              onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            />
           </label>
         ) : (
           <label>

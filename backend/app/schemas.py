@@ -71,6 +71,7 @@ class TeamSummary(BaseModel):
     name: str
     created_at: float
     member_count: int = 0
+    sample_members: list[str] = Field(default_factory=list)
 
 
 class MemberCreate(BaseModel):

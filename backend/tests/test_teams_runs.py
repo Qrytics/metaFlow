@@ -33,7 +33,10 @@ def test_teams_and_members_flow(client):
     assert [m["name"] for m in body["members"]] == ["Ada"]
 
     r = client.get("/teams")
-    assert any(t["id"] == team_id and t["member_count"] == 1 for t in r.json())
+    assert any(
+        t["id"] == team_id and t["member_count"] == 1 and t["sample_members"] == ["Ada"]
+        for t in r.json()
+    )
 
     r = client.delete(f"/teams/{team_id}/members/{member_id}")
     assert r.status_code == 200
