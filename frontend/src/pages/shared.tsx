@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { api } from "../api";
-import type { RunSummary, TeamSummary, View } from "../types";
+import type { RunSummary, StageEvent, TeamSummary, View } from "../types";
 
 export function fmtTime(ts: number): string {
   return new Date(ts * 1000).toLocaleString();
@@ -95,11 +95,10 @@ export function Skeleton({ lines = 3 }: { lines?: number }) {
 export function RunRow({ run, go, teamName }: { run: RunSummary; go: (v: View) => void; teamName?: string }) {
   return (
     <button className="run-row" onClick={() => go({ name: "run", id: run.id })}>
-      <span className={`dot dot-${run.status === "needs_fix" ? "failed" : run.status}`} />
       <span className="run-id num" title={run.id}>{run.id.replace("run_", "").slice(0, 8)}</span>
       <span className="run-title">{run.title}</span>
       <span className="run-meta" title={fmtTime(run.created_at)}>
-        {teamName ?? run.team_id ?? "no team"} · {run.mode} · {relTime(run.created_at)}
+        {teamName ?? run.team_id ?? "no team"}, {run.mode.replace("_", " ")}, {relTime(run.created_at)}
       </span>
       <StatusPill status={run.status} />
       <Chevron />
@@ -187,7 +186,7 @@ export function Menu({
       document.removeEventListener("pointerdown", onDown);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open ]);
+  }, [open]);
 
   function openMenu() {
     setActive(currentIndex);
@@ -260,6 +259,47 @@ export function Menu({
         </ul>
       )}
     </div>
+  );
+}
+
+const STAGES: { key: string; name: string; model: string; note: string }[] = [
+  { key: "transcribe", name: "Transcribe", model: "muse-voice-transcribe", note: "Audio becomes speaker-attributed turns." },
+  { key: "draft", name: "Draft", model: "muse-spark-open-1026", note: "Smallest diff plus tests." },
+  { key: "checks", name: "Checks", model: "pytest, lint, typecheck", note: "Deterministic, before any critic call." },
+  { key: "critic", name: "Critic", model: "muse-wonder-1.0", note: "Repairs violations, three retries at most." },
+  { key: "diagram", name: "Diagram", model: "muse-image", note: "Draws the change." },
+];
+
+export function PipelineStrip({ events }: { events?: StageEvent[] }) {
+  const maxMs = Math.max(1, ...(events ?? []).map((e) => e.ms));
+  return (
+    <ol className="pipe" aria-label="Pipeline stages">
+      {STAGES.map((s, i) => {
+        const mine = (events ?? []).filter((e) => e.stage === s.key);
+        const last = mine[mine.length - 1];
+        const done = mine.filter((e) => e.state === "done").slice(-1)[0];
+        const attempts = mine.filter((e) => e.state === "running").length;
+        const looped = s.key === "critic" && attempts > 1;
+        const cls = last ? (last.state === "done" ? "is-done" : last.state === "failed" ? "is-failed" : last.state === "error" ? "is-error" : "") : "";
+        return (
+          <li key={s.key} className={`${cls}${looped ? " is-loop" : ""}`}>
+            <span className="pn">{String(i + 1).padStart(2, "0")}</span>
+            <span className="pname">{s.name}</span>
+            <span className="pmodel">{s.model}</span>
+            {!events && <span className="pnote">{s.note}</span>}
+            {events && done && done.ms > 0 && (
+              <>
+                <span className="pms num">{Math.round(done.ms)} ms</span>
+                <span className="pbar" aria-hidden="true"><i style={{ width: `${Math.max(4, (done.ms / maxMs) * 100)}%` }} /></span>
+              </>
+            )}
+            {events && !last && <span className="pms muted">not reached</span>}
+            {events && last && last.state === "error" && <span className="pms loopnote">{last.detail || "errored"}</span>}
+            {looped && <span className="loopnote">{attempts} critic passes</span>}
+          </li>
+        );
+      })}
+    </ol>
   );
 }
 

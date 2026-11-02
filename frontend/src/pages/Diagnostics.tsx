@@ -127,7 +127,7 @@ export default function Diagnostics({ go }: { go: (v: View) => void }) {
                 const hint = FIXES.find((f) => c.name.includes(f.match));
                 return (
                   <div key={c.name} className={`diag-row ${c.ok ? "ok" : "bad"}`}>
-                    <span className={`dot dot-${c.ok ? "done" : "failed"}`} />
+                    <span className={`vd ${c.ok ? "ok" : "no"}`}>{c.ok ? "ok" : "fail"}</span>
                     <div>
                       <strong>{c.name}</strong>
                       <span className="muted">{c.detail ? ` ${c.detail}` : ""}</span>

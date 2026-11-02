@@ -17,54 +17,6 @@ const NAV: { key: View["name"]; label: string }[] = [
   { key: "diag", label: "Diagnostics" },
 ];
 
-function Splash() {
-  const [started, setStarted] = useState(false);
-  const [leaving, setLeaving] = useState(false);
-  const [gone, setGone] = useState(false);
-
-  useEffect(() => {
-    let calm = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    try {
-      const raw = localStorage.getItem("metaflow.prefs");
-      if (raw && JSON.parse(raw).calm) calm = true;
-    } catch {
-      /* defaults stand */
-    }
-    if (calm) {
-      setGone(true);
-      return;
-    }
-    const raf = window.requestAnimationFrame(() => setStarted(true));
-    const t1 = window.setTimeout(() => setLeaving(true), 500);
-    const t2 = window.setTimeout(() => setGone(true), 780);
-    return () => {
-      window.cancelAnimationFrame(raf);
-      window.clearTimeout(t1);
-      window.clearTimeout(t2);
-    };
-  }, []);
-
-  if (gone) return null;
-  return (
-    <div className={`splash${started ? " play" : ""}${leaving ? " leaving" : ""}`} aria-hidden="true">
-      <div className="splash-inner">
-        <span className="splash-mark">
-          <i />
-          <i />
-          <i />
-        </span>
-        <span className="splash-name">
-          <strong>meta</strong>Flow
-        </span>
-        <span className="splash-tag">standups in, verified PRs out</span>
-        <span className="splash-bar">
-          <i />
-        </span>
-      </div>
-    </div>
-  );
-}
-
 const FAKE_USER = { name: "Demo Operator", email: "operator@metaflow.local" };
 
 interface Prefs {
@@ -125,7 +77,7 @@ function ProfileMenu() {
       document.removeEventListener("pointerdown", onDown);
       document.removeEventListener("keydown", onKey);
     };
-  }, [open ]);
+  }, [open]);
 
   function signOut() {
     try {
@@ -192,7 +144,7 @@ function ProfileMenu() {
               <button type="button" className="profile-item danger" role="menuitem" onClick={signOut}>
                 Sign out
               </button>
-              <p className="muted profile-note">Demo workspace. Sign-in is simulated, nothing leaves this browser.</p>
+              <p className="muted profile-note">Demo workspace. Sign-in is simulated and nothing leaves this browser.</p>
             </>
           ) : (
             <>
@@ -216,7 +168,7 @@ function ProfileMenu() {
               <label className="set-row">
                 <span>
                   <strong>Calm motion</strong>
-                  <span className="muted">Skips the entry splash and transitions.</span>
+                  <span className="muted">Turns off animation and transitions.</span>
                 </span>
                 <input
                   type="checkbox"
@@ -255,27 +207,40 @@ export default function App() {
 
   return (
     <div className="shell">
-      <Splash />
-      <header className="topbar">
-        <div className="brand" onClick={() => go({ name: "overview" })}>
-          <span className="brand-mark" aria-hidden="true">
-            <i />
-            <i />
-            <i />
-            <i />
-          </span>
+      <aside className="rail-nav">
+        <button type="button" className="brand" onClick={() => go({ name: "overview" })} aria-label="metaFlow overview">
+          <svg className="brand-mark" width="32" height="32" viewBox="0 0 32 32" aria-hidden="true">
+            <rect x="1" y="1" width="30" height="30" rx="3" fill="none" stroke="currentColor" strokeWidth="1.5" />
+            <path d="M7 22 13 11l5 8 3-5 4 8" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" strokeLinecap="round" />
+            <circle cx="25" cy="10" r="2.6" fill="var(--mark)" />
+          </svg>
           <span className="brand-name">
             <strong>meta</strong>Flow
           </span>
-        </div>
-        <div className="topbar-right">
-          <span className={`env-badge ${backendOk ? "on" : backendOk === false ? "off" : ""}`}>
-            {backendOk === null ? "checking backend…" : backendOk ? "backend connected" : "backend offline"}
+        </button>
+        <nav className="sidebar" aria-label="Main">
+          {NAV.map((n, i) => (
+            <button
+              key={n.key}
+              type="button"
+              className={navKey === n.key ? "active" : ""}
+              aria-current={navKey === n.key ? "page" : undefined}
+              onClick={() => go({ name: n.key } as View)}
+            >
+              <span className="nav-n" aria-hidden="true">{String(i + 1).padStart(2, "0")}</span>
+              {n.label}
+            </button>
+          ))}
+        </nav>
+        <div className="rail-foot">
+          <span className={`env-badge ${backendOk ? "on" : backendOk === false ? "off" : ""}`} role="status">
+            {backendOk === null ? "Checking backend" : backendOk ? "Backend connected" : "Backend offline"}
           </span>
           <ProfileMenu />
         </div>
-      </header>
+      </aside>
 
+      <div className="main-col">
       {backendOk === false && (
         <div className="offline-banner">
           <strong>Backend is offline.</strong> The dashboard cannot load runs or teams until it is
@@ -285,35 +250,28 @@ export default function App() {
         </div>
       )}
 
-      <div className="body">
-        <nav className="sidebar">
-          {NAV.map((n) => (
-            <button
-              key={n.key}
-              className={navKey === n.key ? "active" : ""}
-              onClick={() => go({ name: n.key } as View)}
-            >
-              {n.label}
-            </button>
-          ))}
-        </nav>
-        <main className="content">
-          {view.name === "overview" && <Overview go={go} />}
-          {view.name === "new" && <NewRun go={go} />}
-          {view.name === "runs" && <Runs go={go} />}
-          {view.name === "run" && <RunDetailPage id={view.id} go={go} />}
-          {view.name === "teams" && <Teams go={go} />}
-          {view.name === "team" && <TeamPage id={view.id} go={go} />}
-          {view.name === "diag" && <Diagnostics go={go} />}
-        </main>
-      </div>
+      <main className="content">
+        {view.name === "overview" && <Overview go={go} />}
+        {view.name === "new" && <NewRun go={go} />}
+        {view.name === "runs" && <Runs go={go} />}
+        {view.name === "run" && <RunDetailPage id={view.id} go={go} />}
+        {view.name === "teams" && <Teams go={go} />}
+        {view.name === "team" && <TeamPage id={view.id} go={go} />}
+        {view.name === "diag" && <Diagnostics go={go} />}
+      </main>
 
       <footer className="foot">
         <span className="muted">
-          metaFlow · standups in, verified PRs out · ENV=dev runs free local fallbacks
+          metaFlow. Standups in, verified PRs out. ENV=dev runs free local fallbacks.
         </span>
-        <span className="muted num">muse-voice-transcribe · muse-spark-open-1026 · muse-wonder-1.0 · muse-image</span>
+        <span className="muted mono foot-models">
+          <span>muse-voice-transcribe</span>
+          <span>muse-spark-open-1026</span>
+          <span>muse-wonder-1.0</span>
+          <span>muse-image</span>
+        </span>
       </footer>
+      </div>
     </div>
   );
 }

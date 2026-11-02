@@ -106,7 +106,7 @@ export default function TeamPage({ id, go }: { id: string; go: (v: View) => void
         <EmptyState text="No runs filed under this team yet." />
       )}
       <button className="btn-secondary" onClick={() => go({ name: "new" })}>
-        Start a run for this team
+        New run for this team
       </button>
     </div>
   );

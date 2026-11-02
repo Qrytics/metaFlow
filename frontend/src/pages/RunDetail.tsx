@@ -1,6 +1,6 @@
 import { useState } from "react";
 import type { View, RunDetail } from "../types";
-import { useLoad, ErrorBox, StatusPill, Chevron, DiffView, Skeleton, copyText, fmtTime, relTime } from "./shared";
+import { useLoad, ErrorBox, StatusPill, Chevron, DiffView, Skeleton, PipelineStrip, copyText, fmtTime, relTime } from "./shared";
 
 const SPK_COLORS = ["av-blue", "av-teal", "av-green", "av-amber", "av-rose", "av-slate"];
 
@@ -48,8 +48,8 @@ export default function RunDetailPage({ id, go }: { id: string; go: (v: View) =>
         <StatusPill status={data.status} />
       </div>
       <p className="lede">
-        {data.mode} · started {relTime(data.created_at)} ({fmtTime(data.created_at)})
-        {r ? ` · finished in ${Math.round(totalMs)} ms` : ""}
+        {data.mode.replace("_", " ")}, started {relTime(data.created_at)} ({fmtTime(data.created_at)})
+        {r ? `, finished in ${Math.round(totalMs)} ms` : ""}
       </p>
       <p className="run-id-line">
         <code className="num">{data.id}</code>{" "}
@@ -58,13 +58,15 @@ export default function RunDetailPage({ id, go }: { id: string; go: (v: View) =>
         </button>
       </p>
 
+      <PipelineStrip events={data.events} />
+
       <div className="detail-grid">
         <section>
-          <h2>Stage timeline</h2>
+          <h2>Event log</h2>
           <div className="card rail">
             {data.events.map((e, i) => (
               <div key={i} className="rail-item">
-                <span className={`rail-dot dot-${e.state}`} />
+                <span className={`rail-dot rs-${e.state}`} />
                 <div className="rail-body">
                   <div className="rail-top">
                     <strong>{e.stage}</strong>
@@ -99,7 +101,7 @@ export default function RunDetailPage({ id, go }: { id: string; go: (v: View) =>
                   <div key={i} className="turn">
                     <div className="turn-head">
                       <span className={`spk ${speakerClass(t.speaker)}`}>{t.speaker}</span>
-                      <span className="muted num">{t.start_ms}–{t.end_ms} ms</span>
+                      <span className="muted num">{t.start_ms} to {t.end_ms} ms</span>
                     </div>
                     <p>{t.text}</p>
                   </div>
@@ -111,7 +113,7 @@ export default function RunDetailPage({ id, go }: { id: string; go: (v: View) =>
               <div className="card checks">
                 {r.checks.results.map((c) => (
                   <div key={c.name} className={`check-row ${c.passed ? "pass" : "fail"}`}>
-                    <span className={`dot dot-${c.passed ? "done" : "failed"}`} />
+                    <span className={`vd ${c.passed ? "ok" : "no"}`}>{c.passed ? "pass" : "fail"}</span>
                     <div>
                       <strong>{c.name}</strong>
                       <span className="muted"> {c.detail}</span>
@@ -124,7 +126,7 @@ export default function RunDetailPage({ id, go }: { id: string; go: (v: View) =>
               <div className="card">
                 <p className="critic-verdict">
                   Verdict <StatusPill status={r.critic.verdict === "pass" ? "done" : "needs_fix"} />
-                  <span className="muted"> · {r.critic.retries_used} {r.critic.retries_used === 1 ? "retry" : "retries"} used</span>
+                  <span className="muted">{r.critic.retries_used} {r.critic.retries_used === 1 ? "retry" : "retries"} used</span>
                 </p>
                 {r.critic.violations.map((v, i) => (
                   <p key={i} className="violation">{v}</p>
