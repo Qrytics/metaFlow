@@ -36,6 +36,18 @@ check report + draft, never raw logs.
 Static JSON schemas and grading rules go at the top of the system prompt.
 All dynamic data (transcripts, diffs, check output) goes in the user message.
 
+## 4b. Frontend design workflow (mandatory for any UI change)
+
+The frontend has an established design system, "the proof sheet". Before touching `frontend/`:
+
+1. Read `.interface-design/system.md` and the `:root` tokens in `frontend/src/styles.css`.
+   Reuse them. No new colors, fonts, radii or spacing values; everything comes from the tokens.
+   Keep the Hallmark stamp comment on line 1 of `styles.css`.
+2. Follow `docs/frontend-design-skill.md`: plan layout, components and states first, apply the
+   type rules, then audit for generic-template tells before presenting.
+3. Verify with `cd frontend && npm run build`. Do not change `backend/` or API calls.
+4. Report which steps ran, what the audit changed, and anything not verified.
+
 ## 5. Cost controls (mandatory)
 
 - `MAX_CRITIC_RETRIES = 3` per run. No unbounded loops.
